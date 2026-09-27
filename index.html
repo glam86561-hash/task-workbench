@@ -25188,24 +25188,30 @@
         function restoreEditContext(taskId) {
             if (window._editContext) {
                 const ctx = window._editContext;
-                // 恢复全局状态
+                
+                // 1. 恢复全局状态（保证返回列表时的上下文正确）
                 window._fromList = ctx.fromList;
                 window._lockedListContext = ctx.lockedListContext;
                 window._taskListHtml = ctx.taskListHtml;
                 window._taskListTitle = ctx.taskListTitle;
                 window._inDetail = ctx.inDetail;
-                
-                // 恢复界面内容
-                document.getElementById('modalTitle').textContent = ctx.detailTitle || '任务详情';
-                document.getElementById('modalBody').innerHTML = ctx.detailHtml || '';
-                
-                // 重新绑定正确的关闭事件，防止无限循环
+
+                // 2. 清除旧的上下文缓存，防止脏数据污染
+                window._editContext = null;
+
+                // 3. ★★★ 核心修复：不再塞入旧的 HTML，而是重新渲染详情弹窗，读取最新的 tasks 数据 ★★★
+                if (ctx.fromList) {
+                    showDetail(taskId, true);  // 如果是从列表进来的，保留列表返回状态
+                } else {
+                    showDetail(taskId, false); // 如果是直接点开的，直接重新渲染详情
+                }
+
+                // 4. 重新绑定正确的关闭事件，防止事件被闭包劫持
                 const closeBtn = document.querySelector('#modalOverlay .modal-header .close-btn');
                 if (closeBtn) {
                     closeBtn.onclick = closeModal;
                 }
-                
-                window._editContext = null;
+
             } else {
                 // 兜底逻辑：如果快照丢失，按非列表模式恢复
                 showDetail(taskId, false);
